@@ -1,5 +1,7 @@
-from appJar import gui
 from decimal import Decimal
+
+from appJar import gui
+
 # TODO: Comma separators for large number entry
 # TODO: Add %, sqrt, **, 1/x
 
@@ -187,21 +189,21 @@ with gui("Calculator") as win:
     win.addButton("Exit", press, 8, 0, 4)
 
     # Bind keyboard keys to the 'press' function for input
-    win.bindKey("9", press)
-    win.bindKey("8", press)
-    win.bindKey("7", press)
-    win.bindKey("6", press)
-    win.bindKey("5", press)
-    win.bindKey("4", press)
-    win.bindKey("3", press)
-    win.bindKey("2", press)
-    win.bindKey("1", press)
-    win.bindKey("0", press)
-    win.bindKey("/", press)
-    win.bindKey("*", press)
-    win.bindKey("-", press)
-    win.bindKey("+", press)
-    win.bindKey(".", press)
-    win.bindKey("<BackSpace>", press)
-    win.bindKey("<Delete>", press)
-    win.enableEnter(press)
+    # win.bindKey("9", press)
+    # win.bindKey("8", press)
+    # win.bindKey("7", press)
+    # win.bindKey("6", press)
+    # win.bindKey("5", press)
+    # win.bindKey("4", press)
+    # win.bindKey("3", press)
+    # win.bindKey('2', press)
+    # win.bindKey("1", press)
+    # win.bindKey("0", press)
+    # win.bindKey("/", press)
+    # win.bindKey("*", press)
+    # win.bindKey("-", press)
+    # win.bindKey("+", press)
+    # win.bindKey(".", press)
+    # win.bindKey("BackSpace", press)
+    # win.bindKey("Delete", press)
+    # win.enableEnter(press)
