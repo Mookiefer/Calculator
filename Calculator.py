@@ -4,6 +4,7 @@ import PySimpleGUI as PySG
 
 # TODO: Comma separators for large number entry
 # TODO: Add %, sqrt, **, 1/x
+# TODO: Allow more than two operands.
 
 font = "Ariel Unicode MS"
 px = 20
@@ -28,23 +29,22 @@ result_style = {
     "font": "Consolas 30",
     }
 numbers = {
-    "-ZERO-": "0",
-    "-ONE-": "1",
-    "-TWO-": "2",
-    "-THREE-": "3",
-    "-FOUR-": "4",
-    "-FIVE-": "5",
-    "-SIX-": "6",
-    "-SEVEN-": "7",
-    "-EIGHT-": "8",
-    "-NINE-": "9",
+    "-ZERO-": "0", "0": "0",
+    "-ONE-": "1", "1": "1",
+    "-TWO-": "2", "2": "2",
+    "-THREE-": "3", "3": "3",
+    "-FOUR-": "4", "4": "4",
+    "-FIVE-": "5", "5": "5",
+    "-SIX-": "6", "6": "6",
+    "-SEVEN-": "7", "7": "7",
+    "-EIGHT-": "8", "8": "8",
+    "-NINE-": "9", "9": "9",
     }
 operators = {
-    "": "",
-    "-ADD-": "+",
-    "-SUBTRACT-": "−",
-    "-MULTIPLY-": "×",
-    "-DIVIDE-": "÷",
+    "-ADD-": "+", "+": "+",
+    "-SUBTRACT-": "−", "-": "−",
+    "-MULTIPLY-": "×", "*": "×",
+    "-DIVIDE-": "÷", "/": "÷",
     "-EQUAL-": "=",
     }
 
@@ -94,7 +94,7 @@ def calc_layout():
         PySG.Button("\u00b1", key="-SIGN-"),
         PySG.Button("\u0030", key="-ZERO-"),
         PySG.Button("\u002e", key="-DECIMAL-"),
-        PySG.Button("\u003d", key="-EQUAL-"),
+        PySG.Button("\u003d", key="-EQUAL-", bind_return_key=True),
         ], [
         PySG.Button("Exit", key="-EXIT-", size=(45, 1)),
         ]]
@@ -109,30 +109,31 @@ def main():
         "num2": "",
         "sign": ""
         }
-    result_box = ""
+    result_box = "0"
     PySG.theme('Default1')
     win = PySG.Window("Calculator", calc_layout(), **win_style)
 
     while True:
         ev, val = win()
+        print(ev)
 
         try:
             if ev is PySG.WIN_CLOSED or ev == "-EXIT-":
                 break
 
             # Performs the selected operation on the entered numbers
-            elif ev == "-EQUAL-":
-                eq["sign"] = ev
+            elif ev == "-EQUAL-" or ev == "=" or ev == "\r":
+                eq["sign"] = "="
                 if not eq["num2"] and eq["operator"]:
                     eq["num2"] = eq["num1"]
-                if eq["operator"] == "-DIVIDE-":
-                    result = Decimal(eq["num1"]) / Decimal(eq["num2"])
-                elif eq["operator"] == "-MULTIPLY-":
-                    result = Decimal(eq["num1"]) * Decimal(eq["num2"])
-                elif eq["operator"] == "-SUBTRACT-":
-                    result = Decimal(eq["num1"]) - Decimal(eq["num2"])
-                elif eq["operator"] == "-ADD-":
+                if eq["operator"] == "+":
                     result = Decimal(eq["num1"]) + Decimal(eq["num2"])
+                elif eq["operator"] == "−":
+                    result = Decimal(eq["num1"]) - Decimal(eq["num2"])
+                elif eq["operator"] == "×":
+                    result = Decimal(eq["num1"]) * Decimal(eq["num2"])
+                elif eq["operator"] == "÷":
+                    result = Decimal(eq["num1"]) / Decimal(eq["num2"])
                 else:
                     result = eq["num1"]
                 # Display the calculation in the 'Result' label
@@ -140,17 +141,32 @@ def main():
                 win["-RESULT-"](result_box)
 
             # Sets or changes the operator being used
-            elif ev in ["-ADD-", "-SUBTRACT-", "-MULTIPLY-", "-DIVIDE-"]:
+            elif ev in [
+                    "-ADD-", "+",
+                    "-SUBTRACT-", "-",
+                    "-MULTIPLY-", "*",
+                    "-DIVIDE-", "/"
+                    ]:
                 if not eq["num1"]:
                     if result_box:
                         eq["num1"] = result_box.replace(",", "")
                     else:
                         eq["num1"] = "0"
-                eq["operator"] = ev
+                eq["operator"] = operators[ev]
 
             # Sets or changes the complex operator being used
             elif ev in ["-PERCENT-", "-SQRT-", "-SQUARE-", "-INVERSE-"]:
-                pass
+                eq["sign"] = "="
+                if ev == "-SQUARE-":
+                    result = Decimal(eq["num1"]) ** 2
+                elif ev == "-SQRT-":
+                    result = Decimal(eq["num1"]) ** Decimal(1/2)
+                elif ev == "-INVERSE-":
+                    result = 1 / Decimal(eq["num1"])
+                else:
+                    result = eq["num1"]
+                result_box = '{:,}'.format(floatint(result))
+                win["-RESULT-"](result_box)
 
             # '±' changes the sign of the current number entered
             elif ev == "-SIGN-":
@@ -158,11 +174,11 @@ def main():
                     eq["num2"] = str(-floatint(eq["num2"]))
                 else:
                     if not eq["num1"]:
-                        eq["num1"] = win["-RESULT-"].replace(",", "")
+                        eq["num1"] = result_box.replace(",", "")
                     eq["num1"] = str(-floatint(eq["num1"]))
 
             # '.' adds a decimal to the current number entered
-            elif ev == "-DECIMAL-":
+            elif ev == "-DECIMAL-" or ev == ".":
                 if eq["operator"]:
                     if "." not in eq["num2"]:
                         eq["num2"] = eq["num2"] + "."
@@ -207,13 +223,6 @@ def main():
                 else:
                     eq["num1"] = eq["num1"] + numbers[ev]
 
-            # Append number to current number string being entered
-            elif ev in {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}:
-                if eq["operator"]:
-                    eq["num2"] = eq["num2"] + ev
-                else:
-                    eq["num1"] = eq["num1"] + ev
-
         # Catch division by zero error
         except ZeroDivisionError:
             win["-RESULT-"]("Cannot divide by 0")
@@ -221,9 +230,9 @@ def main():
         # Display the current entered values from 'eq' to the 'Entry' label
         win["-ENTRY-"](
             eq["num1"]
-            + operators[eq["operator"]]
+            + eq["operator"]
             + eq["num2"]
-            + operators[eq["sign"]]
+            + eq["sign"]
             )
 
         # Reset 'eq' after a result has been shown
