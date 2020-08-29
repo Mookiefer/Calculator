@@ -1,9 +1,9 @@
-from decimal import Decimal
+from decimal import Decimal, getcontext
 
 import PySimpleGUI as PySG
 
 # TODO: Comma separators for large number entry
-# TODO: Add %, sqrt, **, 1/x
+# TODO: Add %
 # TODO: Allow more than two operands.
 
 font = "Ariel Unicode MS"
@@ -49,15 +49,109 @@ operators = {
     }
 
 
-def floatint(number):
-    """
-    Function to return an integer value if the float value is the same
-    or a float value if it is different
-    """
-    if float(number) == int(number):
-        return int(number)
+def equals(eq):
+    # Performs the selected operation on the entered numbers
+    getcontext().prec = 17
+    eq["sign"] = "="
+    if not eq["num2"] and eq["operator"]:
+        eq["num2"] = eq["num1"]
+    if eq["operator"] == "+":
+        result = Decimal(eq["num1"]) + Decimal(eq["num2"])
+    elif eq["operator"] == "−":
+        result = Decimal(eq["num1"]) - Decimal(eq["num2"])
+    elif eq["operator"] == "×":
+        result = Decimal(eq["num1"]) * Decimal(eq["num2"])
+    elif eq["operator"] == "÷":
+        result = Decimal(eq["num1"]) / Decimal(eq["num2"])
     else:
-        return float(number)
+        result = Decimal(eq["num1"])
+    return '{:,}'.format(result)
+
+
+def complex_op(eq, ev):
+    # Sets or changes the complex operator being used
+    getcontext().prec = 17
+    eq["sign"] = "="
+    if ev == "-SQUARE-":
+        result = Decimal(eq["num1"]) ** Decimal("2")
+    elif ev == "-SQRT-":
+        result = Decimal(eq["num1"]).sqrt()
+    elif ev == "-INVERSE-":
+        result = Decimal("1") / Decimal(eq["num1"])
+    else:
+        result = Decimal(eq["num1"])
+    return '{:,}'.format(result)
+
+
+def number(eq, ev):
+    # Append number to current number string being entered
+    if eq["operator"]:
+        eq["num2"] = eq["num2"] + numbers[ev]
+    else:
+        eq["num1"] = eq["num1"] + numbers[ev]
+
+
+def operator(eq, result_box, ev):
+    # Sets or changes the operator being used
+    if not eq["num1"]:
+        if result_box:
+            eq["num1"] = result_box.replace(",", "")
+        else:
+            eq["num1"] = "0"
+    eq["operator"] = operators[ev]
+
+
+def change_sign(eq, result_box):
+    # '±' changes the sign of the current number entered
+    if eq["operator"]:
+        eq["num2"] = str(-Decimal(eq["num2"]))
+    else:
+        if not eq["num1"]:
+            eq["num1"] = result_box.replace(",", "")
+        eq["num1"] = str(-Decimal(eq["num1"]))
+
+
+def decimal_point(eq):
+    # '.' adds a decimal to the current number entered
+    if eq["operator"]:
+        if "." not in eq["num2"]:
+            eq["num2"] = eq["num2"] + "."
+        else:
+            return
+    else:
+        if "." not in eq["num1"]:
+            eq["num1"] = eq["num1"] + "."
+        else:
+            return
+
+
+def backspace(eq):
+    # 'Backspace' removes last character entered
+    if eq["num2"]:
+        eq["num2"] = eq["num2"][:len(eq["num2"]) - 1]
+    elif eq["operator"]:
+        eq["operator"] = ""
+    elif eq["num1"]:
+        eq["num1"] = eq["num1"][:len(eq["num1"]) - 1]
+    else:
+        return
+
+
+def clear_entry(eq):
+    # 'Clear Entry' removes last operand or operator entered
+    if eq["num2"]:
+        eq["num2"] = ""
+    elif eq["operator"]:
+        eq["operator"] = ""
+    elif eq["num1"]:
+        eq["num1"] = ""
+    else:
+        return
+
+
+def clear(eq):
+    # 'Clear' removes everything entered
+    return eq.fromkeys(eq, "")
 
 
 def calc_layout():
@@ -120,111 +214,33 @@ def main():
         try:
             if ev is PySG.WIN_CLOSED or ev == "-EXIT-":
                 break
-
-            # Performs the selected operation on the entered numbers
             elif ev == "-EQUAL-" or ev == "=" or ev == "\r":
-                eq["sign"] = "="
-                if not eq["num2"] and eq["operator"]:
-                    eq["num2"] = eq["num1"]
-                if eq["operator"] == "+":
-                    result = Decimal(eq["num1"]) + Decimal(eq["num2"])
-                elif eq["operator"] == "−":
-                    result = Decimal(eq["num1"]) - Decimal(eq["num2"])
-                elif eq["operator"] == "×":
-                    result = Decimal(eq["num1"]) * Decimal(eq["num2"])
-                elif eq["operator"] == "÷":
-                    result = Decimal(eq["num1"]) / Decimal(eq["num2"])
-                else:
-                    result = eq["num1"]
-                # Display the calculation in the 'Result' label
-                result_box = '{:,}'.format(floatint(result))
+                result_box = equals(eq)
                 win["-RESULT-"](result_box)
-
-            # Sets or changes the operator being used
+            elif ev in ["-PERCENT-", "-SQRT-", "-SQUARE-", "-INVERSE-"]:
+                result_box = complex_op(eq, ev)
+                win["-RESULT-"](result_box)
+            elif ev in numbers:
+                number(eq, ev)
             elif ev in [
                     "-ADD-", "+",
                     "-SUBTRACT-", "-",
                     "-MULTIPLY-", "*",
                     "-DIVIDE-", "/"
                     ]:
-                if not eq["num1"]:
-                    if result_box:
-                        eq["num1"] = result_box.replace(",", "")
-                    else:
-                        eq["num1"] = "0"
-                eq["operator"] = operators[ev]
-
-            # Sets or changes the complex operator being used
-            elif ev in ["-PERCENT-", "-SQRT-", "-SQUARE-", "-INVERSE-"]:
-                eq["sign"] = "="
-                if ev == "-SQUARE-":
-                    result = Decimal(eq["num1"]) ** 2
-                elif ev == "-SQRT-":
-                    result = Decimal(eq["num1"]) ** Decimal(1/2)
-                elif ev == "-INVERSE-":
-                    result = 1 / Decimal(eq["num1"])
-                else:
-                    result = eq["num1"]
-                result_box = '{:,}'.format(floatint(result))
-                win["-RESULT-"](result_box)
-
-            # '±' changes the sign of the current number entered
+                operator(eq, result_box, ev)
             elif ev == "-SIGN-":
-                if eq["operator"]:
-                    eq["num2"] = str(-floatint(eq["num2"]))
-                else:
-                    if not eq["num1"]:
-                        eq["num1"] = result_box.replace(",", "")
-                    eq["num1"] = str(-floatint(eq["num1"]))
-
-            # '.' adds a decimal to the current number entered
+                change_sign(eq, result_box)
             elif ev == "-DECIMAL-" or ev == ".":
-                if eq["operator"]:
-                    if "." not in eq["num2"]:
-                        eq["num2"] = eq["num2"] + "."
-                    else:
-                        return
-                else:
-                    if "." not in eq["num1"]:
-                        eq["num1"] = eq["num1"] + "."
-                    else:
-                        return
-
-            # 'Backspace' removes last character entered
+                decimal_point(eq)
             elif ev == "-BACK-" or ev == "BackSpace:8":
-                if eq["num2"]:
-                    eq["num2"] = eq["num2"][:len(eq["num2"]) - 1]
-                elif eq["operator"]:
-                    eq["operator"] = ""
-                elif eq["num1"]:
-                    eq["num1"] = eq["num1"][:len(eq["num1"]) - 1]
-                else:
-                    return
-
-            # 'Clear Entry' removes last operand or operator entered
+                backspace(eq)
             elif ev == "-CE-" or ev == "Delete:46":
-                if eq["num2"]:
-                    eq["num2"] = ""
-                elif eq["operator"]:
-                    eq["operator"] = ""
-                elif eq["num1"]:
-                    eq["num1"] = ""
-                else:
-                    return
-
-            # 'Clear' removes everything entered
+                clear_entry(eq)
             elif ev == "-CLEAR-":
-                eq = eq.fromkeys(eq, "")
-
-            # Append number to current number string being entered
-            elif ev in numbers:
-                if eq["operator"]:
-                    eq["num2"] = eq["num2"] + numbers[ev]
-                else:
-                    eq["num1"] = eq["num1"] + numbers[ev]
-
-        # Catch division by zero error
+                eq = clear(eq)
         except ZeroDivisionError:
+            # Catch division by zero error
             win["-RESULT-"]("Cannot divide by 0")
 
         # Display the current entered values from 'eq' to the 'Entry' label
@@ -237,7 +253,7 @@ def main():
 
         # Reset 'eq' after a result has been shown
         if eq["sign"]:
-            eq = eq.fromkeys(eq, "")
+            eq = clear(eq)
 
     win.close()
 
