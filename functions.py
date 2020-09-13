@@ -136,7 +136,7 @@ def main_loop(win):
     result_box = "0"
 
     while True:
-        ev, val = win()
+        ev, val = win.read()
         print(ev)
 
         try:
